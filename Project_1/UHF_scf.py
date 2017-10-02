@@ -126,45 +126,17 @@ while hf_counter < maxHFiterations or (convergence_down > tolerance and converge
     # from psi4
 
     # 2. compute J(D) (eq. (29b))
-    W.tolist()
-    D_sigma_up.tolist()
-    D_sigma_down.tolist()
-    #H.tolist()
-    #S.tolist()
-    JD_up = [[0 for x in range(nbf)] for y in range(nbf)] 
-    for p in range(0, nbf):
-        for q in range(0, nbf):
-            for r in range(0, nbf):
-                for s in range(0, nbf):
-                    JD_up[p][q]+=W[p][q][r][s]*D_sigma_up[s][r]
-    
-    JD_down = [[0 for x in range(nbf)] for y in range(nbf)] 
-    for p in range(0, nbf):
-        for q in range(0, nbf):
-            for r in range(0, nbf):
-                for s in range(0, nbf):
-                    JD_down[p][q]+=W[p][q][r][s]*D_sigma_down[s][r]
-    #JD = [[0 for x in range(nbf)] for y in range(nbf)] 
-    JD = np.asarray(JD_up) + np.asarray(JD_down)
-    
+    JD_up =  np.einsum('pqrs,sr->pq', W, D_sigma_up)
+    JD_down =  np.einsum('pqrs,sr->pq', W, D_sigma_down)
+    JD = JD_up + JD_down
+
     # 3. compute K (eq. (29c))
-    K_up = [[0 for x in range(nbf)] for y in range(nbf)] 
-    for p in range(0, nbf):
-        for q in range(0, nbf):
-            for r in range(0, nbf):
-                for s in range(0, nbf):
-                    K_up[p][q]+=W[p][s][r][q]*D_sigma_up[s][r]
-    
-    K_down = [[0 for x in range(nbf)] for y in range(nbf)] 
-    for p in range(0, nbf):
-        for q in range(0, nbf):
-            for r in range(0, nbf):
-                for s in range(0, nbf):
-                    K_down[p][q]+=W[p][s][r][q]*D_sigma_down[s][r]
-   
+    K_up = np.einsum('psrq,sr->pq', W, D_sigma_up)
+    K_down = np.einsum('psrq,sr->pq', W, D_sigma_down)
+
     # compute Fock matrix F (eq. (30))
-    Fock_matrix_up = H + JD - np.asarray(K_up)
-    Fock_matrix_down = H + JD - np.asarray(K_down) 
+    Fock_matrix_up = H + JD - K_up
+    Fock_matrix_down = H + JD - K_down 
 
     #Solve the eigenvalue problem Fock_matrix_up*U_up=S*U_up*E_up
     lambda_up, U_up = geig(Fock_matrix_up,S)
