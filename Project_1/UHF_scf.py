@@ -76,29 +76,29 @@ def geig(A,B):
     return lamb, U
 
 ########### MAIN PART ############
-#r = 1.84 
-#
-#h2o ="""
-#    O
-#    H 1 r
-#    H 1 r 2 104
-#    symmetry c1
-#    r = %f
-#    units bohr
-#""" % (r)
+r = 1.84 
 
-r = 2.0
-
-h2 = """
-    0 1
-    H
-    H 1 %f
+h2o ="""
+    O
+    H 1 r
+    H 1 r 2 104
     symmetry c1
+    r = %f
     units bohr
-    """ % (r)
+""" % (r)
 
-#H,W,S,nbf,nalpha,nbeta = call_psi4(h2o, {'reference' : 'uhf'})
-H,W,S,nbf,nalpha,nbeta = call_psi4(h2, {'reference' : 'uhf'})
+#r = 2.0
+
+#h2 = """
+#    0 1
+#    H
+#    H 1 %f
+#    symmetry c1
+#    units bohr
+#    """ % (r)
+
+H,W,S,nbf,nalpha,nbeta = call_psi4(h2o, {'reference' : 'uhf'})
+#H,W,S,nbf,nalpha,nbeta = call_psi4(h2, {'reference' : 'uhf'})
 
 ## SCF loop ##
 
