@@ -75,6 +75,62 @@ def geig(A,B):
     U = np.dot(LinvT, V)
     return lamb, U
 
+def RHF(H,W,nbf,nalpha):
+    ## SCF loop ##
+    
+    EnergyDifference = 10.0   # dummy value for loop start
+    maxHFiterations = 100     # Max number of HF iterations
+    hf_counter = 0
+    tolerance = 1e-7
+    convergence = 1e-6
+    #make initial guess for U matrix(Identity + random Hermitian noise)
+    U = np.identity(nbf)
+    N=nalpha #+nbeta
+    #compute initial density matrix with Hermitian noise
+    D = 2.0*np.matmul(U[0:,0:N], np.transpose(U[0:,0:N]))
+    X = np.random.rand(nbf, nbf)
+    X = X + np.transpose(X)
+    D = D + 0.001*X
+    
+    lambda_old = np.zeros(nbf)
+    
+    ## loop(max_iteration or energy_diff < 10^-7) ###
+    while ((hf_counter < maxHFiterations) and (convergence > tolerance)):
+       
+        #compute density matrix D (eq. (28))
+        if hf_counter != 0:
+           D = 2.0*np.matmul(U[0:,0:N],np.transpose(U[0:,0:N]))
+           
+        #for Fock operator we compute three components
+        # 1. take h/one-body term from psi4
+    
+        # 2. compute J(D) (eq. (29b))
+        JD = np.einsum('pqrs,sr->pq', W, D)
+    
+        # 3. compute K (eq. (29c))
+        K = np.einsum('psrq,sr->pq', W, D)
+    
+        # compute Fock matrix F (eq. (30))
+        Fock_matrix = H + JD - 0.5*K
+    
+        #Solve the eigenvalue problem Fock_matrix*U=S*U*E
+        lambda_new, U = geig(Fock_matrix,S)
+    
+        #eigenvalue difference difference
+        convergence = np.amax(np.absolute(lambda_new - lambda_old))
+        
+        #assign previous step eigenvalues
+        lambda_old = lambda_new
+    
+        #print(hf_counter,convergence)
+        hf_counter += 1
+         
+    OneBody=np.trace(np.matmul(D,H)) 
+    Direct=0.5*np.trace(np.matmul(D,JD)) 
+    Exchange=0.5*np.trace(np.matmul(D,K))  
+    return (OneBody + Direct -0.5*Exchange), hf_counter
+
+
 ########### MAIN PART ############
 #r = 1.84 
 
@@ -100,66 +156,10 @@ h2 = """
 #H,W,S,nbf,nalpha,nbeta = call_psi4(h2o, {'reference' : 'rhf'})
 H,W,S,nbf,nalpha,nbeta = call_psi4(h2, {'reference' : 'rhf'})
 
-## SCF loop ##
+E_HF,nloops=RHF(H,W,nbf,nalpha)
+print("Convergence on loop # ",nloops)
+print(E_HF)
 
-EnergyDifference = 10.0   # dummy value for loop start
-maxHFiterations = 100     # Max number of HF iterations
-hf_counter = 0
-tolerance = 1e-7
-convergence = 1e-6
-#make initial guess for U matrix(Identity + random Hermitian noise)
-U = np.identity(nbf)
-N=nalpha #+nbeta
-#compute initial density matrix with Hermitian noise
-D = 2.0*np.matmul(U[0:,0:N], np.transpose(U[0:,0:N]))
-X = np.random.rand(nbf, nbf)
-X = X + np.transpose(X)
-D = D + 0.001*X
-
-lambda_old = np.zeros(nbf)
-
-## loop(max_iteration or energy_diff < 10^-7) ###
-while ((hf_counter < maxHFiterations) and (convergence > tolerance)):
-   
-    #compute density matrix D (eq. (28))
-    if hf_counter != 0:
-       D = 2.0*np.matmul(U[0:,0:N],np.transpose(U[0:,0:N]))
-       
-    #for Fock operator we compute three components
-    # 1. take h/one-body term from psi4
-
-    # 2. compute J(D) (eq. (29b))
-    JD = np.einsum('pqrs,sr->pq', W, D)
-
-    # 3. compute K (eq. (29c))
-    K = np.einsum('psrq,sr->pq', W, D)
-
-    # compute Fock matrix F (eq. (30))
-    Fock_matrix = H + JD - 0.5*K
-
-    #Solve the eigenvalue problem Fock_matrix*U=S*U*E
-    lambda_new, U = geig(Fock_matrix,S)
-
-    #eigenvalue difference difference
-    convergence = np.amax(np.absolute(lambda_new - lambda_old))
-    
-    #assign previous step eigenvalues
-    lambda_old = lambda_new
-
-    #print(np.sum(lambda_down[0:nbeta]) + np.sum(lambda_up[0:nalpha]))
-    print(hf_counter,convergence)
-    hf_counter += 1
-     
-print(hf_counter)
-print("--------------------")
-print(nalpha, nbeta, nbf)
-OneBody=np.trace(np.matmul(D,H)) 
-Direct=0.5*np.trace(np.matmul(D,JD)) 
-Exchange=0.5*np.trace(np.matmul(D,K))  
-print(OneBody + Direct -0.5*Exchange)
-#
-###         enf of SCF loop           ###
-#####################################
 
 
 

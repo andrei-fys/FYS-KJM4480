@@ -75,6 +75,82 @@ def geig(A,B):
     U = np.dot(LinvT, V)
     return lamb, U
 
+def UHF(H,W,nbf,nalpha,nbeta):
+    
+    ## SCF loop ##
+    
+    EnergyDifference = 10.0   # dummy value for loop start
+    maxHFiterations = 100     # Max number of HF iterations
+    hf_counter = 0
+    tolerance = 1e-7
+    convergence = 1e-6
+    #make initial guess for U matrix(Identity + random Hermitian noise)
+    U_up = np.identity(nbf)
+    U_down = np.identity(nbf)
+    
+    #compute initial density matrix with Hermitian noise
+    D_sigma_up = np.matmul(U_up[0:,0:nalpha], np.transpose(U_up[0:,0:nalpha]))
+    X = np.random.rand(nbf, nbf)
+    X = X + np.transpose(X)
+    D_sigma_up = D_sigma_up + 0.001*X
+    
+    D_sigma_down = np.matmul(U_down[0:,0:nbeta],np.transpose(U_down[0:,0:nbeta]))
+    X = np.random.rand(nbf, nbf)
+    X = X + np.transpose(X)
+    D_sigma_down = D_sigma_down + 0.001*X
+    
+    lambda_up_old = np.zeros(nbf)
+    lambda_down_old = np.zeros(nbf)
+    
+    ## loop(max_iteration or energy_diff < 10^-7) ###
+    while ((hf_counter < maxHFiterations) and (convergence > tolerance)):
+       
+        #compute density matrix D (eq. (28))
+        if hf_counter != 0:
+           D_sigma_up = np.matmul(U_up[0:,0:nalpha],np.transpose(U_up[0:,0:nalpha]))
+           D_sigma_down = np.matmul(U_down[0:,0:nbeta],np.transpose(U_down[0:,0:nbeta]))
+           
+        #for Fock operator we compute three components
+        # 1. take h/one-body term from psi4
+    
+        # 2. compute J(D) (eq. (29b))
+        JD_up =  np.einsum('pqrs,sr->pq', W, D_sigma_up)
+        JD_down =  np.einsum('pqrs,sr->pq', W, D_sigma_down)
+        JD = JD_up + JD_down
+    
+        # 3. compute K (eq. (29c))
+        K_up = np.einsum('psrq,sr->pq', W, D_sigma_up)
+        K_down = np.einsum('psrq,sr->pq', W, D_sigma_down)
+    
+        # compute Fock matrix F (eq. (30))
+        Fock_matrix_up = H + JD - K_up
+        Fock_matrix_down = H + JD - K_down 
+    
+        #Solve the eigenvalue problem Fock_matrix_up*U_up=S*U_up*E_up
+        lambda_up, U_up = geig(Fock_matrix_up,S)
+    
+        #Solve the eigenvalue problem Fock_matrix_down*U_down=S*U_down*E_down
+        lambda_down, U_down = geig(Fock_matrix_down,S)
+        
+        #eigenvalue difference difference
+        convergence_down = np.amax(np.absolute(lambda_down - lambda_down_old))
+        convergence_up = np.amax(np.absolute(lambda_up - lambda_up_old))
+        convergence = max(convergence_down, convergence_up)
+        
+        #assign previous step eigenvalues
+        lambda_up_old = lambda_up
+        lambda_down_old = lambda_down
+    
+        #print(hf_counter,convergence)
+        hf_counter += 1
+         
+    D=D_sigma_down + D_sigma_up
+    OneBody=np.trace(np.matmul(D,H)) 
+    Direct=0.5*np.trace(np.matmul(D,JD)) 
+    Exchange=0.5*np.trace(np.matmul(D_sigma_up,K_up)) + 0.5*np.trace(np.matmul(D_sigma_down,K_down))  
+    return (OneBody + Direct - Exchange), hf_counter
+
+
 ########### MAIN PART ############
 #r = 1.84 
 #
@@ -100,88 +176,10 @@ h2 = """
 #H,W,S,nbf,nalpha,nbeta = call_psi4(h2o, {'reference' : 'uhf'})
 H,W,S,nbf,nalpha,nbeta = call_psi4(h2, {'reference' : 'uhf'})
 
-## SCF loop ##
+E_HF,nloops=UHF(H,W,nbf,nalpha,nbeta)
 
-EnergyDifference = 10.0   # dummy value for loop start
-maxHFiterations = 100     # Max number of HF iterations
-hf_counter = 0
-tolerance = 1e-7
-convergence = 1e-6
-#make initial guess for U matrix(Identity + random Hermitian noise)
-U_up = np.identity(nbf)
-U_down = np.identity(nbf)
-
-#compute initial density matrix with Hermitian noise
-D_sigma_up = np.matmul(U_up[0:,0:nalpha], np.transpose(U_up[0:,0:nalpha]))
-X = np.random.rand(nbf, nbf)
-X = X + np.transpose(X)
-D_sigma_up = D_sigma_up + 0.001*X
-
-D_sigma_down = np.matmul(U_down[0:,0:nbeta],np.transpose(U_down[0:,0:nbeta]))
-X = np.random.rand(nbf, nbf)
-X = X + np.transpose(X)
-D_sigma_down = D_sigma_down + 0.001*X
-
-lambda_up_old = np.zeros(nbf)
-lambda_down_old = np.zeros(nbf)
-
-## loop(max_iteration or energy_diff < 10^-7) ###
-while ((hf_counter < maxHFiterations) and (convergence > tolerance)):
-   
-    #compute density matrix D (eq. (28))
-    if hf_counter != 0:
-       D_sigma_up = np.matmul(U_up[0:,0:nalpha],np.transpose(U_up[0:,0:nalpha]))
-       D_sigma_down = np.matmul(U_down[0:,0:nbeta],np.transpose(U_down[0:,0:nbeta]))
-       
-    #for Fock operator we compute three components
-    # 1. take h/one-body term from psi4
-
-    # 2. compute J(D) (eq. (29b))
-    JD_up =  np.einsum('pqrs,sr->pq', W, D_sigma_up)
-    JD_down =  np.einsum('pqrs,sr->pq', W, D_sigma_down)
-    JD = JD_up + JD_down
-
-    # 3. compute K (eq. (29c))
-    K_up = np.einsum('psrq,sr->pq', W, D_sigma_up)
-    K_down = np.einsum('psrq,sr->pq', W, D_sigma_down)
-
-    # compute Fock matrix F (eq. (30))
-    Fock_matrix_up = H + JD - K_up
-    Fock_matrix_down = H + JD - K_down 
-
-    #Solve the eigenvalue problem Fock_matrix_up*U_up=S*U_up*E_up
-    lambda_up, U_up = geig(Fock_matrix_up,S)
-
-    #Solve the eigenvalue problem Fock_matrix_down*U_down=S*U_down*E_down
-    lambda_down, U_down = geig(Fock_matrix_down,S)
-    
-    #eigenvalue difference difference
-    convergence_down = np.amax(np.absolute(lambda_down - lambda_down_old))
-    convergence_up = np.amax(np.absolute(lambda_up - lambda_up_old))
-    convergence = max(convergence_down, convergence_up)
-    
-    #assign previous step eigenvalues
-    lambda_up_old = lambda_up
-    lambda_down_old = lambda_down
-
-    #print(np.sum(lambda_down[0:nbeta]) + np.sum(lambda_up[0:nalpha]))
-    print(hf_counter,convergence)
-    hf_counter += 1
-     
-print(hf_counter)
-print("--------------------")
-D=D_sigma_down + D_sigma_up
-
-OneBody=np.trace(np.matmul(D,H)) 
-Direct=0.5*np.trace(np.matmul(D,JD)) 
-Exchange=0.5*np.trace(np.matmul(D_sigma_up,K_up)) + 0.5*np.trace(np.matmul(D_sigma_down,K_down))  
-print(OneBody + Direct - Exchange)
-#
-###         enf of SCF loop           ###
-#####################################
-
-
-
+print("Convergence on loop # ",nloops)
+print(E_HF)
 
     
 #E_RHF_psi4, Enuc, H, W, S, norb, nocc_up, nocc_dn = call_psi4(h2, {'reference' : 'rhf'})
