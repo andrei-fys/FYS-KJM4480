@@ -106,7 +106,7 @@ EnergyDifference = 10.0   # dummy value for loop start
 maxHFiterations = 100     # Max number of HF iterations
 hf_counter = 0
 tolerance = 1e-7
-convergence = 10.0
+convergence = 1e-6
 #make initial guess for U matrix(Identity + random Hermitian noise)
 U_up = np.identity(nbf)
 U_down = np.identity(nbf)
@@ -126,7 +126,7 @@ lambda_up_old = np.zeros(nbf)
 lambda_down_old = np.zeros(nbf)
 
 ## loop(max_iteration or energy_diff < 10^-7) ###
-while (hf_counter < maxHFiterations):# and (convergence < tolerance)):
+while ((hf_counter < maxHFiterations) and (convergence > tolerance)):
    
     #compute density matrix D (eq. (28))
     if hf_counter != 0:
