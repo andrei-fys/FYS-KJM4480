@@ -44,8 +44,8 @@ def call_psi4(mol_spec, extra_opts = {}):
 
 
     # Perform a SCF calculation based on the options.
-#    SCF_E_psi4 = psi4.energy('SCF')
-#    Enuc = mol.nuclear_repulsion_energy()
+    SCF_E_psi4 = psi4.energy('SCF')
+    Enuc = mol.nuclear_repulsion_energy()
 
     # We're done, return.
 #    return SCF_E_psi4, Enuc, H,W,S, nbf, nalpha, nbeta
@@ -76,24 +76,37 @@ def geig(A,B):
     return lamb, U
 
 ########### MAIN PART ############
-r = 1.84 
+#r = 1.84 
+#
+#h2o ="""
+#    O
+#    H 1 r
+#    H 1 r 2 104
+#    symmetry c1
+#    r = %f
+#    units bohr
+#""" % (r)
 
-h2o ="""
-    O
-    H 1 r
-    H 1 r 2 104
+r = 2.0
+
+h2 = """
+    0 1
+    H
+    H 1 %f
     symmetry c1
-    r = %f
     units bohr
-""" % (r)
+    """ % (r)
 
-H,W,S,nbf,nalpha,nbeta = call_psi4(h2o, {'reference' : 'uhf'})
+#H,W,S,nbf,nalpha,nbeta = call_psi4(h2o, {'reference' : 'uhf'})
+H,W,S,nbf,nalpha,nbeta = call_psi4(h2, {'reference' : 'uhf'})
 
 ## SCF loop ##
 
 EnergyDifference = 10.0   # dummy value for loop start
 maxHFiterations = 100     # Max number of HF iterations
 hf_counter = 0
+tolerance = 1e-7
+convergence = 10.0
 #make initial guess for U matrix(Identity + random Hermitian noise)
 U_up = np.identity(nbf)
 U_down = np.identity(nbf)
@@ -108,13 +121,12 @@ D_sigma_down = np.matmul(U_down[0:,0:nbeta],np.transpose(U_down[0:,0:nbeta]))
 X = np.random.rand(nbf, nbf)
 X = X + np.transpose(X)
 D_sigma_down = D_sigma_down + 0.001*X
-tolerance = 10**(-7)
 
 lambda_up_old = np.zeros(nbf)
 lambda_down_old = np.zeros(nbf)
 
 ## loop(max_iteration or energy_diff < 10^-7) ###
-while hf_counter < maxHFiterations or (convergence_down > tolerance and convergence_up) > tolerance:
+while (hf_counter < maxHFiterations):# and (convergence < tolerance)):
    
     #compute density matrix D (eq. (28))
     if hf_counter != 0:
@@ -122,8 +134,7 @@ while hf_counter < maxHFiterations or (convergence_down > tolerance and converge
        D_sigma_down = np.matmul(U_down[0:,0:nbeta],np.transpose(U_down[0:,0:nbeta]))
        
     #for Fock operator we compute three components
-    # 1. compute h/one-body term (eq. (29a))
-    # from psi4
+    # 1. take h/one-body term from psi4
 
     # 2. compute J(D) (eq. (29b))
     JD_up =  np.einsum('pqrs,sr->pq', W, D_sigma_up)
@@ -144,36 +155,35 @@ while hf_counter < maxHFiterations or (convergence_down > tolerance and converge
     #Solve the eigenvalue problem Fock_matrix_down*U_down=S*U_down*E_down
     lambda_down, U_down = geig(Fock_matrix_down,S)
     
-    #break
-
+    #eigenvalue difference difference
+    convergence_down = np.amax(np.absolute(lambda_down - lambda_down_old))
+    convergence_up = np.amax(np.absolute(lambda_up - lambda_up_old))
+    convergence = max(convergence_down, convergence_up)
+    
     #assign previous step eigenvalues
     lambda_up_old = lambda_up
     lambda_down_old = lambda_down
 
-    #energy difference
-    convergence_down = np.amax(np.absolute(lambda_down - lambda_down_old))
-    convergence_up = np.amax(np.absolute(lambda_up - lambda_up_old))
-    print(np.sum(lambda_down[0:nbeta]) + np.sum(lambda_up[0:nalpha]))
+    #print(np.sum(lambda_down[0:nbeta]) + np.sum(lambda_up[0:nalpha]))
+    print(hf_counter,convergence)
     hf_counter += 1
      
+print(hf_counter)
+print("--------------------")
+D=D_sigma_down + D_sigma_up
 
+OneBody=np.trace(np.matmul(D,H)) 
+Direct=0.5*np.trace(np.matmul(D,JD)) 
+Exchange=0.5*np.trace(np.matmul(D_sigma_up,K_up)) + 0.5*np.trace(np.matmul(D_sigma_down,K_down))  
+print(OneBody + Direct - Exchange)
+#
 ###         enf of SCF loop           ###
 #####################################
 
 
 
 
-#r = 2.0
-#
-#
-#h2 = """
-#    0 1
-#    H
-#    H 1 %f
-#    symmetry c1
-#    units bohr
-#    """ % (r)
-#    
+    
 #E_RHF_psi4, Enuc, H, W, S, norb, nocc_up, nocc_dn = call_psi4(h2, {'reference' : 'rhf'})
 #   
 #print("RHF energy of H2 molecule at interatomic distance R = %f is E_RHF = %f" % (r, E_RHF_psi4))
