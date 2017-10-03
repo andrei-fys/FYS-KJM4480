@@ -77,7 +77,7 @@ def geig(A,B):
 
 ########### MAIN PART ############
 #r = 1.84 
-#
+
 #h2o ="""
 #    O
 #    H 1 r
@@ -97,8 +97,8 @@ h2 = """
     units bohr
     """ % (r)
 
-#H,W,S,nbf,nalpha,nbeta = call_psi4(h2o, {'reference' : 'uhf'})
-H,W,S,nbf,nalpha,nbeta = call_psi4(h2, {'reference' : 'uhf'})
+#H,W,S,nbf,nalpha,nbeta = call_psi4(h2o, {'reference' : 'rhf'})
+H,W,S,nbf,nalpha,nbeta = call_psi4(h2, {'reference' : 'rhf'})
 
 ## SCF loop ##
 
@@ -108,61 +108,43 @@ hf_counter = 0
 tolerance = 1e-7
 convergence = 1e-6
 #make initial guess for U matrix(Identity + random Hermitian noise)
-U_up = np.identity(nbf)
-U_down = np.identity(nbf)
-
+U = np.identity(nbf)
+N=nalpha #+nbeta
 #compute initial density matrix with Hermitian noise
-D_sigma_up = np.matmul(U_up[0:,0:nalpha], np.transpose(U_up[0:,0:nalpha]))
+D = 2.0*np.matmul(U[0:,0:N], np.transpose(U[0:,0:N]))
 X = np.random.rand(nbf, nbf)
 X = X + np.transpose(X)
-D_sigma_up = D_sigma_up + 0.001*X
+D = D + 0.001*X
 
-D_sigma_down = np.matmul(U_down[0:,0:nbeta],np.transpose(U_down[0:,0:nbeta]))
-X = np.random.rand(nbf, nbf)
-X = X + np.transpose(X)
-D_sigma_down = D_sigma_down + 0.001*X
-
-lambda_up_old = np.zeros(nbf)
-lambda_down_old = np.zeros(nbf)
+lambda_old = np.zeros(nbf)
 
 ## loop(max_iteration or energy_diff < 10^-7) ###
 while ((hf_counter < maxHFiterations) and (convergence > tolerance)):
    
     #compute density matrix D (eq. (28))
     if hf_counter != 0:
-       D_sigma_up = np.matmul(U_up[0:,0:nalpha],np.transpose(U_up[0:,0:nalpha]))
-       D_sigma_down = np.matmul(U_down[0:,0:nbeta],np.transpose(U_down[0:,0:nbeta]))
+       D = 2.0*np.matmul(U[0:,0:N],np.transpose(U[0:,0:N]))
        
     #for Fock operator we compute three components
     # 1. take h/one-body term from psi4
 
     # 2. compute J(D) (eq. (29b))
-    JD_up =  np.einsum('pqrs,sr->pq', W, D_sigma_up)
-    JD_down =  np.einsum('pqrs,sr->pq', W, D_sigma_down)
-    JD = JD_up + JD_down
+    JD = np.einsum('pqrs,sr->pq', W, D)
 
     # 3. compute K (eq. (29c))
-    K_up = np.einsum('psrq,sr->pq', W, D_sigma_up)
-    K_down = np.einsum('psrq,sr->pq', W, D_sigma_down)
+    K = np.einsum('psrq,sr->pq', W, D)
 
     # compute Fock matrix F (eq. (30))
-    Fock_matrix_up = H + JD - K_up
-    Fock_matrix_down = H + JD - K_down 
+    Fock_matrix = H + JD - 0.5*K
 
-    #Solve the eigenvalue problem Fock_matrix_up*U_up=S*U_up*E_up
-    lambda_up, U_up = geig(Fock_matrix_up,S)
+    #Solve the eigenvalue problem Fock_matrix*U=S*U*E
+    lambda_new, U = geig(Fock_matrix,S)
 
-    #Solve the eigenvalue problem Fock_matrix_down*U_down=S*U_down*E_down
-    lambda_down, U_down = geig(Fock_matrix_down,S)
-    
     #eigenvalue difference difference
-    convergence_down = np.amax(np.absolute(lambda_down - lambda_down_old))
-    convergence_up = np.amax(np.absolute(lambda_up - lambda_up_old))
-    convergence = max(convergence_down, convergence_up)
+    convergence = np.amax(np.absolute(lambda_new - lambda_old))
     
     #assign previous step eigenvalues
-    lambda_up_old = lambda_up
-    lambda_down_old = lambda_down
+    lambda_old = lambda_new
 
     #print(np.sum(lambda_down[0:nbeta]) + np.sum(lambda_up[0:nalpha]))
     print(hf_counter,convergence)
@@ -170,12 +152,11 @@ while ((hf_counter < maxHFiterations) and (convergence > tolerance)):
      
 print(hf_counter)
 print("--------------------")
-D=D_sigma_down + D_sigma_up
-
+print(nalpha, nbeta, nbf)
 OneBody=np.trace(np.matmul(D,H)) 
 Direct=0.5*np.trace(np.matmul(D,JD)) 
-Exchange=0.5*np.trace(np.matmul(D_sigma_up,K_up)) + 0.5*np.trace(np.matmul(D_sigma_down,K_down))  
-print(OneBody + Direct - Exchange)
+Exchange=0.5*np.trace(np.matmul(D,K))  
+print(OneBody + Direct -0.5*Exchange)
 #
 ###         enf of SCF loop           ###
 #####################################
