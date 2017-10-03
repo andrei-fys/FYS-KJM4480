@@ -75,7 +75,7 @@ def geig(A,B):
     U = np.dot(LinvT, V)
     return lamb, U
 
-def UHF(H,W,nbf,nalpha,nbeta):
+def UHF(H,W,S,nbf,nalpha,nbeta):
     
     ## SCF loop ##
     
@@ -150,36 +150,36 @@ def UHF(H,W,nbf,nalpha,nbeta):
     Exchange=0.5*np.trace(np.matmul(D_sigma_up,K_up)) + 0.5*np.trace(np.matmul(D_sigma_down,K_down))  
     return (OneBody + Direct - Exchange), hf_counter
 
-
-########### MAIN PART ############
-#r = 1.84 
-#
-#h2o ="""
-#    O
-#    H 1 r
-#    H 1 r 2 104
-#    symmetry c1
-#    r = %f
-#    units bohr
-#""" % (r)
-
-r = 5.0
-
-h2 = """
-    0 1
-    H
-    H 1 %f
-    symmetry c1
-    units bohr
-    """ % (r)
-
-#H,W,S,nbf,nalpha,nbeta = call_psi4(h2o, {'reference' : 'uhf'})
-H,W,S,nbf,nalpha,nbeta = call_psi4(h2, {'reference' : 'uhf'})
-
-E_HF,nloops=UHF(H,W,nbf,nalpha,nbeta)
-
-print("Convergence on loop # ",nloops)
-print(E_HF)
+if __name__ == "__main__":
+    ########### MAIN PART ############
+    #r = 1.84 
+    #
+    #h2o ="""
+    #    O
+    #    H 1 r
+    #    H 1 r 2 104
+    #    symmetry c1
+    #    r = %f
+    #    units bohr
+    #""" % (r)
+    
+    r = 5.0
+    
+    h2 = """
+        0 1
+        H
+        H 1 %f
+        symmetry c1
+        units bohr
+        """ % (r)
+    
+    #H,W,S,nbf,nalpha,nbeta = call_psi4(h2o, {'reference' : 'uhf'})
+    H,W,S,nbf,nalpha,nbeta = call_psi4(h2, {'reference' : 'uhf'})
+    
+    E_HF,nloops=UHF(H,W,S,nbf,nalpha,nbeta)
+    
+    print("Convergence on loop # ",nloops)
+    print(E_HF)
 
     
 #E_RHF_psi4, Enuc, H, W, S, norb, nocc_up, nocc_dn = call_psi4(h2, {'reference' : 'rhf'})

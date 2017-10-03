@@ -75,7 +75,7 @@ def geig(A,B):
     U = np.dot(LinvT, V)
     return lamb, U
 
-def RHF(H,W,nbf,nalpha):
+def RHF(H,W,S,nbf,nalpha):
     ## SCF loop ##
     
     EnergyDifference = 10.0   # dummy value for loop start
@@ -130,37 +130,37 @@ def RHF(H,W,nbf,nalpha):
     Exchange=0.5*np.trace(np.matmul(D,K))  
     return (OneBody + Direct -0.5*Exchange), hf_counter
 
+if __name__ == "__main__":
+    ########### MAIN PART ############
+    #r = 1.84 
+    
+    #h2o ="""
+    #    O
+    #    H 1 r
+    #    H 1 r 2 104
+    #    symmetry c1
+    #    r = %f
+    #    units bohr
+    #""" % (r)
+    
+    r = 5.0
+    
+    h2 = """
+        0 1
+        H
+        H 1 %f
+        symmetry c1
+        units bohr
+        """ % (r)
 
-########### MAIN PART ############
-#r = 1.84 
-
-#h2o ="""
-#    O
-#    H 1 r
-#    H 1 r 2 104
-#    symmetry c1
-#    r = %f
-#    units bohr
-#""" % (r)
-
-r = 5.0
-
-h2 = """
-    0 1
-    H
-    H 1 %f
-    symmetry c1
-    units bohr
-    """ % (r)
-
-#H,W,S,nbf,nalpha,nbeta = call_psi4(h2o, {'reference' : 'rhf'})
-H,W,S,nbf,nalpha,nbeta = call_psi4(h2, {'reference' : 'rhf'})
-
-E_HF,nloops=RHF(H,W,nbf,nalpha)
-print("Convergence on loop # ",nloops)
-print(E_HF)
-
-
+    #H,W,S,nbf,nalpha,nbeta = call_psi4(h2o, {'reference' : 'rhf'})
+    H,W,S,nbf,nalpha,nbeta = call_psi4(h2, {'reference' : 'rhf'})
+    
+    E_HF,nloops=RHF(H,W,S,nbf,nalpha)
+    print("Convergence on loop # ",nloops)
+    print(E_HF)
+    
+    
 
 
 
