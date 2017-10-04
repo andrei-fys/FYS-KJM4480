@@ -186,18 +186,3 @@ if __name__ == "__main__":
     print("HF energy without nuclear interaction: ",E_HF)
     print("HF energy with nuclear interaction: ",E_HF+Enuc)
     print("HF energy after Psi4 SCF calculation: ",E_psi4)
-    
-#E_RHF_psi4, Enuc, H, W, S, norb, nocc_up, nocc_dn = call_psi4(h2, {'reference' : 'rhf'})
-#   
-#print("RHF energy of H2 molecule at interatomic distance R = %f is E_RHF = %f" % (r, E_RHF_psi4))
-#print("The nuclear term is Enuc = ", Enuc)
-#print("Basis size = %d, N_up = %d, N_down = %d" % (norb, nocc_dn, nocc_up))
-#
-#E_UHF_psi4, Enuc, H, W, S, norb, nocc_up, nocc_dn = call_psi4(h2o, {'reference' : 'uhf'})
-#   
-#print("RHF energy of H2O molecule at interatomic distance R = %f is E_RHF = %f" % (r, E_UHF_psi4))
-#print("The nuclear term is Enuc = ", Enuc)
-#print("Basis size = %d, N_up = %d, N_down = %d" % (norb, nocc_dn, nocc_up))
-#
-
-#print(np.allclose(np.dot(S12,np.dot(S,S12)),np.eye(norb)))
