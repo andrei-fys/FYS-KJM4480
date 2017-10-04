@@ -49,7 +49,7 @@ def call_psi4(mol_spec, extra_opts = {}):
 
     # We're done, return.
 #    return SCF_E_psi4, Enuc, H,W,S, nbf, nalpha, nbeta
-    return H,W,S,nbf,nalpha,nbeta
+    return H,W,S,nbf,nalpha,nbeta,Enuc,SCF_E_psi4
 
 def geig(A,B):
     """
@@ -80,10 +80,11 @@ def UHF(H,W,S,nbf,nalpha,nbeta):
     ## SCF loop ##
     
     EnergyDifference = 10.0   # dummy value for loop start
-    maxHFiterations = 100     # Max number of HF iterations
+    maxHFiterations = 500     # Max number of HF iterations
     hf_counter = 0
     tolerance = 1e-7
     convergence = 1e-6
+    theta = 0.3
     #make initial guess for U matrix(Identity + random Hermitian noise)
     U_up = np.identity(nbf)
     U_down = np.identity(nbf)
@@ -107,9 +108,12 @@ def UHF(H,W,S,nbf,nalpha,nbeta):
        
         #compute density matrix D (eq. (28))
         if hf_counter != 0:
-           D_sigma_up = np.matmul(U_up[0:,0:nalpha],np.transpose(U_up[0:,0:nalpha]))
-           D_sigma_down = np.matmul(U_down[0:,0:nbeta],np.transpose(U_down[0:,0:nbeta]))
+           D_sigma_up_new = np.matmul(U_up[0:,0:nalpha],np.transpose(U_up[0:,0:nalpha]))
+           D_sigma_down_new = np.matmul(U_down[0:,0:nbeta],np.transpose(U_down[0:,0:nbeta]))
            
+           D_sigma_up = theta*D_sigma_up + (1-theta)*D_sigma_up_new 
+           D_sigma_down = theta*D_sigma_down + (1-theta)*D_sigma_down_new
+
         #for Fock operator we compute three components
         # 1. take h/one-body term from psi4
     
@@ -174,13 +178,14 @@ if __name__ == "__main__":
         """ % (r)
     
     #H,W,S,nbf,nalpha,nbeta = call_psi4(h2o, {'reference' : 'uhf'})
-    H,W,S,nbf,nalpha,nbeta = call_psi4(h2, {'reference' : 'uhf'})
+    H,W,S,nbf,nalpha,nbeta,Enuc,E_psi4 = call_psi4(h2, {'reference' : 'uhf'})
     
     E_HF,nloops=UHF(H,W,S,nbf,nalpha,nbeta)
     
     print("Convergence on loop # ",nloops)
-    print(E_HF)
-
+    print("HF energy without nuclear interaction: ",E_HF)
+    print("HF energy with nuclear interaction: ",E_HF+Enuc)
+    print("HF energy after Psi4 SCF calculation: ",E_psi4)
     
 #E_RHF_psi4, Enuc, H, W, S, norb, nocc_up, nocc_dn = call_psi4(h2, {'reference' : 'rhf'})
 #   
