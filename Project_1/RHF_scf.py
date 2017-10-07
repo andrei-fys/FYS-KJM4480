@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import psi4
+import sys
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -133,33 +134,48 @@ def RHF(H,W,S,nbf,nalpha):
     return (OneBody + Direct -0.5*Exchange), hf_counter
 
 if __name__ == "__main__":
-    ########### MAIN PART ############
-    #r = 1.84 
-    
-    #h2o ="""
-    #    O
-    #    H 1 r
-    #    H 1 r 2 104
-    #    symmetry c1
-    #    r = %f
-    #    units bohr
-    #""" % (r)
-    
-    r = 5.0
-    
-    h2 = """
-        0 1
-        H
-        H 1 %f
-        symmetry c1
-        units bohr
-        """ % (r)
+    if len(sys.argv) == 2:
+        if str(sys.argv[1]) == "H2":
+            #########################  H2  ######################### 
+            r = 5.0
+            h2 = """
+                0 1
+                H
+                H 1 %f
+                symmetry c1
+                units bohr
+                """ % (r)
 
-    #H,W,S,nbf,nalpha,nbeta = call_psi4(h2o, {'reference' : 'rhf'})
-    H,W,S,nbf,nalpha,nbeta,Enuc,E_psi4 = call_psi4(h2, {'reference' : 'rhf'})
-    
-    E_HF,nloops=RHF(H,W,S,nbf,nalpha)
-    print("Convergence on loop # ",nloops)
-    print("HF energy without nuclear interaction: ",E_HF)
-    print("HF energy with nuclear interaction: ",E_HF+Enuc)
-    print("HF energy after Psi4 SCF calculation: ",E_psi4)
+            H,W,S,nbf,nalpha,nbeta,Enuc,E_psi4 = call_psi4(h2, {'reference' : 'rhf'})
+
+            E_HF,nloops=RHF(H,W,S,nbf,nalpha)
+
+            print("############## H2 ################")
+            print("Convergence on loop # ",nloops)
+            print("HF energy without nuclear interaction: ",E_HF)
+            print("HF energy with nuclear interaction: ",E_HF+Enuc)
+            print("HF energy after Psi4 SCF calculation: ",E_psi4)
+        elif str(sys.argv[1]) == "H2O":
+            #########################  H2O  ######################### 
+            r = 1.84
+            h2o = """
+                 O
+                 H 1 r
+                 H 1 r 2 104
+                 symmetry c1
+                 r = %f
+                 units bohr
+                 """ % (r)
+            H,W,S,nbf,nalpha,nbeta,Enuc,E_psi4 = call_psi4(h2o, {'reference' : 'uhf'})
+            E_HF,nloops=RHF(H,W,S,nbf,nalpha)
+
+            print("############## H2O ################")
+            print("Convergence on loop # ",nloops)
+            print("HF energy without nuclear interaction: ",E_HF)
+            print("HF energy with nuclear interaction: ",E_HF+Enuc)
+            print("HF energy after Psi4 SCF calculation: ",E_psi4)
+        else:
+            print("Possible options are H2O and H2")
+    else:
+        print("wrong usage, try python RHF_scf.py H2 or python RHF_scf.py H2O")
+
