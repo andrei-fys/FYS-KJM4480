@@ -14,9 +14,9 @@ E_uHF_psi4=[]
 E_rHF_psi4=[]
 
 
-for i in np.arange(0.7, 7.0, 0.1): 
+for i in np.arange(0.7, 7.0, 0.1):
     # for each new value of radius we create new geometry
-    r=i 
+    r=i
     h2 = """
         0 1
         H
@@ -38,7 +38,7 @@ for i in np.arange(0.7, 7.0, 0.1):
     E_uHF_psi4.append(E_RHF_psi4)
     E_rHF_psi4.append(E_RHF_psi4)
 
-
+#creates plot
 fig1 = plt.figure()
 ax1 = fig1.add_subplot(111)
 ax1.plot(R, E_uHF_psi4, color="green",marker="^",label=r'$UHF\ Psi4$')
@@ -48,10 +48,11 @@ ax1.plot(R, E_rHF, color="red",linestyle="--",label=r'$RHF$')
 plt.grid()
 
 plt.legend(loc="lower right", fontsize=18)
-#
-plt.xlabel('r', fontsize=20)
-plt.ylabel(r'$E$', fontsize=20)
-#
+
+ax1.tick_params(axis='both', which='major', labelsize=12)
+plt.xlabel(r'$r,\ r_{Bohr}$', fontsize=20)
+plt.ylabel(r'$E,\ Ha$', fontsize=20)
+
 plt.draw()
 plt.show()
 
