@@ -41,8 +41,8 @@ for i in np.arange(0.7, 7.0, 0.1):
 #creates plot
 fig1 = plt.figure()
 ax1 = fig1.add_subplot(111)
-ax1.plot(R, E_uHF_psi4, color="green",marker="^",label=r'$UHF\ Psi4$')
-ax1.plot(R, E_rHF_psi4, color="blue",marker="v",label=r'$RHF\ Psi4$')
+ax1.plot(R, E_uHF_psi4, color="green",linestyle='None',marker="^",label=r'$UHF\ Psi4$')
+ax1.plot(R, E_rHF_psi4, color="blue",linestyle='None',marker="v",label=r'$RHF\ Psi4$')
 ax1.plot(R, E_uHF, color="black",linestyle="-.",label=r'$UHF$')
 ax1.plot(R, E_rHF, color="red",linestyle="--",label=r'$RHF$')
 plt.grid()
