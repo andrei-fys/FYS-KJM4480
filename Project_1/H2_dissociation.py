@@ -33,23 +33,23 @@ for i in np.arange(0.7, 7.0, 0.1):
     E_UHF,nloops=UHF(H,W,S,nbf,nalpha,nbeta)
     #make lists for matplotlib
     R.append(r)
-    E_uHF.append(E_UHF+Enuc_RHF)
-    E_rHF.append(E_RHF+Enuc_UHF)
-    E_uHF_psi4.append(E_RHF_psi4)
+    E_uHF.append(E_UHF+Enuc_UHF)
+    E_rHF.append(E_RHF+Enuc_RHF)
+    E_uHF_psi4.append(E_UHF_psi4)
     E_rHF_psi4.append(E_RHF_psi4)
 
 #creates plot
 fig1 = plt.figure()
 ax1 = fig1.add_subplot(111)
 ax1.plot(R, E_uHF_psi4, color="green",marker="^",label=r'$UHF\ Psi4$')
-ax1.plot(R, E_rHF_psi4, color="yellow",label=r'$RHF\ Psi4$')
+ax1.plot(R, E_rHF_psi4, color="blue",marker="v",label=r'$RHF\ Psi4$')
 ax1.plot(R, E_uHF, color="black",linestyle="-.",label=r'$UHF$')
 ax1.plot(R, E_rHF, color="red",linestyle="--",label=r'$RHF$')
 plt.grid()
 
 plt.legend(loc="lower right", fontsize=18)
 
-ax1.tick_params(axis='both', which='major', labelsize=12)
+ax1.tick_params(axis='both', which='major', labelsize=14)
 plt.xlabel(r'$r,\ r_{Bohr}$', fontsize=20)
 plt.ylabel(r'$E,\ Ha$', fontsize=20)
 
